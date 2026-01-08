@@ -1,14 +1,21 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { HouseType, DesignStyle } from "../types";
 
-const API_KEY = process.env.API_KEY || '';
+/**
+ * API KEY – CHUẨN CHO VITE + VERCEL
+ */
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY as string;
+
+if (!API_KEY) {
+  throw new Error("❌ VITE_GEMINI_API_KEY is missing. Please check Vercel Environment Variables.");
+}
 
 /**
  * Phân tích phong thủy dựa trên ngày sinh, tập trung từ năm 2026
  */
 export const analyzeFengShui = async (birthDate: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
+
   const prompt = `Bạn là một chuyên gia phong thủy kiến trúc cao cấp. 
   Dựa trên ngày sinh khách hàng là: ${birthDate}.
   Hãy thực hiện phân tích chuyên sâu cho việc xây nhà tính từ năm 2026 trở đi:
@@ -21,9 +28,10 @@ export const analyzeFengShui = async (birthDate: string): Promise<string> => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: "gemini-3-flash-preview",
       contents: prompt,
     });
+
     return response.text || "Thông tin phong thủy đang được cập nhật cho năm 2026...";
   } catch (error) {
     console.error("Lỗi phân tích phong thủy:", error);
@@ -35,23 +43,23 @@ export const analyzeFengShui = async (birthDate: string): Promise<string> => {
  * Hàm hỗ trợ tạo thiết kế với cơ chế thử lại (retry)
  */
 const generateWithRetry = async (
-  ai: any,
+  ai: GoogleGenAI,
   landImageBase64: string,
   prompt: string,
   maxRetries: number = 2
 ): Promise<{ imageUrl: string; description: string } | null> => {
-  let lastError = null;
-  
+  let lastError: unknown = null;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: "gemini-2.5-flash-image",
         contents: {
           parts: [
             {
               inlineData: {
-                data: landImageBase64.split(',')[1],
-                mimeType: 'image/png',
+                data: landImageBase64.split(",")[1],
+                mimeType: "image/png",
               },
             },
             { text: prompt },
@@ -60,15 +68,15 @@ const generateWithRetry = async (
         config: {
           imageConfig: {
             aspectRatio: "9:16",
-          }
-        }
+          },
+        },
       });
 
-      let imageUrl = '';
-      let description = '';
+      let imageUrl = "";
+      let description = "";
 
       for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
+        if (part.inlineData?.data) {
           imageUrl = `data:image/png;base64,${part.inlineData.data}`;
         } else if (part.text) {
           description += part.text;
@@ -80,12 +88,17 @@ const generateWithRetry = async (
       }
     } catch (error) {
       lastError = error;
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
+
+  console.error("Generate image failed after retries:", lastError);
   return null;
 };
 
+/**
+ * Tạo nhiều phương án thiết kế kiến trúc
+ */
 export const generateArchitecturalDesigns = async (
   landImageBase64: string,
   houseType: HouseType,
@@ -99,15 +112,16 @@ export const generateArchitecturalDesigns = async (
 ): Promise<{ imageUrl: string; description: string }[]> => {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   const finalResults: { imageUrl: string; description: string }[] = [];
-  
+
   const variations = [
     "Kiến trúc khối hiện đại, kính cường lực lớn, ban công rộng, mặt tiền ốp đá marble.",
     "Phong cách tối giản, hệ lam chắn nắng thẩm mỹ, chiếu sáng ngoại thất sang trọng.",
-    "Kiến trúc xanh, gạch thông gió, ban công cây mướt, ánh sáng rực rỡ."
+    "Kiến trúc xanh, gạch thông gió, ban công cây mướt, ánh sáng rực rỡ.",
   ];
 
   for (let i = 0; i < count; i++) {
     const variationPrompt = variations[i % variations.length];
+
     const prompt = `THIẾT KẾ KIẾN TRÚC TOÀN CẢNH 9:16 (PHƯƠNG ÁN ${i + 1}):
     - Đất trống: ${landWidth}m x ${landLength}m.
     - Công trình: ${houseType}, ${floors} tầng, phong cách ${style}.
@@ -120,7 +134,7 @@ export const generateArchitecturalDesigns = async (
     if (result) {
       finalResults.push({
         imageUrl: result.imageUrl,
-        description: result.description || `Phương án ${i + 1} sắc nét.`
+        description: result.description || `Phương án ${i + 1} sắc nét.`,
       });
     }
   }
@@ -128,21 +142,25 @@ export const generateArchitecturalDesigns = async (
   return finalResults;
 };
 
+/**
+ * Chỉnh sửa thiết kế kiến trúc
+ */
 export const editDesign = async (
   currentImageBase64: string,
   editPrompt: string
 ): Promise<string | null> => {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
+
   const prompt = `CHỈNH SỬA KIẾN TRÚC: ${editPrompt}. Giữ nguyên tỉ lệ 9:16, không mất đầu nhà.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
+    model: "gemini-2.5-flash-image",
     contents: {
       parts: [
         {
           inlineData: {
-            data: currentImageBase64.split(',')[1],
-            mimeType: 'image/png',
+            data: currentImageBase64.split(",")[1],
+            mimeType: "image/png",
           },
         },
         { text: prompt },
@@ -151,14 +169,15 @@ export const editDesign = async (
     config: {
       imageConfig: {
         aspectRatio: "9:16",
-      }
-    }
+      },
+    },
   });
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
+    if (part.inlineData?.data) {
       return `data:image/png;base64,${part.inlineData.data}`;
     }
   }
+
   return null;
 };
