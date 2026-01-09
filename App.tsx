@@ -35,7 +35,7 @@ const Header: React.FC<{ onReset: () => void }> = ({ onReset }) => (
         </div>
       </div>
       <nav className="hidden md:flex gap-10 items-center">
-        <a href="https://sdarchi.com.vn/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#00f2ff] font-bold transition-all uppercase text-xs tracking-widest">Công trình</a>
+        <a href="https://www.facebook.com/ctxdhungthinhphu" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#00f2ff] font-bold transition-all uppercase text-xs tracking-widest">Công trình</a>
         <button onClick={onReset} className="text-slate-400 hover:text-white font-bold transition-all uppercase text-xs tracking-widest flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           Bắt đầu lại
@@ -68,7 +68,7 @@ const App: React.FC = () => {
   const [editPrompt, setEditPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
-  const ZALO_LINK = "https://zalo.me/g/exlpxk125";
+  const ZALO_LINK = "https://zalo.me/g/znkzqj505";
 
   const handleReset = useCallback(() => {
     if (suggestions.length > 0 || formData.image) {
